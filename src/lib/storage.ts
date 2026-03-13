@@ -76,7 +76,10 @@ export async function loadArticles(date: string): Promise<DailyArticles | null> 
   }
 }
 
-/** 30日以上前のキャッシュを削除 */
+/**
+ * 30日以上前の daily_articles キャッシュを削除
+ * ※user_favorites（お気に入り）は一切削除しない。ユーザーが解除するまで保持
+ */
 export async function cleanupOldCache(): Promise<{ deleted: number }> {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 30);

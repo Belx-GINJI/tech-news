@@ -3,6 +3,7 @@ import { cleanupOldCache } from '@/lib/storage';
 
 /**
  * 30日以前の daily_articles キャッシュを削除
+ * ※お気に入り（user_favorites）は削除しない
  * - Vercel Cron で毎日実行
  * - 手動で GET /api/cleanup を呼んでも実行可能
  */
