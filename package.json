@@ -1,0 +1,33 @@
+{
+  "name": "tech-news-aggregator",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "fetch-news": "npx tsx scripts/fetch-now.ts",
+    "cron": "npx tsx scripts/cron.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "date-fns": "^4.1.0",
+    "google-translate-api-x": "^10.7.2",
+    "next": "^15.2.0",
+    "node-cron": "^3.0.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "postcss": "^8.5.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
