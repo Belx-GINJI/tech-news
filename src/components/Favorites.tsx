@@ -1,8 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import type { Article } from '@/lib/types';
 import { CATEGORY_LABELS } from '@/lib/feeds';
+import { filterArticlesBySearch } from '@/lib/search';
 import ArticleCard from './ArticleCard';
+import SearchBar from './SearchBar';
 
 interface FavoritesProps {
   favorites: Article[];
@@ -40,8 +43,11 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
     );
   }
 
+  const [searchQuery, setSearchQuery] = useState('');
+  const filteredFavorites = filterArticlesBySearch(favorites, searchQuery);
+
   const grouped = new Map<string, Article[]>();
-  for (const article of favorites) {
+  for (const article of filteredFavorites) {
     const cat = article.category;
     if (!grouped.has(cat)) grouped.set(cat, []);
     grouped.get(cat)!.push(article);
@@ -54,11 +60,36 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
 
   const favoriteUrls = new Set(favorites.map((f) => f.url));
 
+  if (filteredFavorites.length === 0) {
+    return (
+      <div className="fade-in">
+        <div className="mb-5">
+          <h2 className="text-xl font-bold text-surface-800">お気に入り</h2>
+          <p className="text-sm text-surface-500 mt-0.5">{favorites.length} 件の記事</p>
+        </div>
+        <div className="mb-4">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="お気に入り内を検索..." />
+        </div>
+        <p className="text-center text-surface-400 py-10">検索に一致する記事がありません</p>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in">
       <div className="mb-5">
         <h2 className="text-xl font-bold text-surface-800">お気に入り</h2>
-        <p className="text-sm text-surface-500 mt-0.5">{favorites.length} 件の記事</p>
+        <p className="text-sm text-surface-500 mt-0.5">
+          {searchQuery ? `${filteredFavorites.length} / ${favorites.length} 件` : `${favorites.length} 件の記事`}
+        </p>
+      </div>
+
+      <div className="mb-4">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="お気に入り内を検索..."
+        />
       </div>
 
       <div className="space-y-6">

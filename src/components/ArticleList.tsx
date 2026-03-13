@@ -5,7 +5,9 @@ import { format } from 'date-fns';
 import { ja } from 'date-fns/locale';
 import type { Article } from '@/lib/types';
 import { CATEGORY_LABELS } from '@/lib/feeds';
+import { filterArticlesBySearch } from '@/lib/search';
 import ArticleCard from './ArticleCard';
+import SearchBar from './SearchBar';
 
 interface ArticleListProps {
   articles: Article[];
@@ -31,12 +33,14 @@ export default function ArticleList({
 }: ArticleListProps) {
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
   const [languageFilter, setLanguageFilter] = useState<LanguageFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filtered = articles.filter((a) => {
+  const filteredByCategory = articles.filter((a) => {
     if (categoryFilter !== 'all' && a.category !== categoryFilter) return false;
     if (languageFilter !== 'all' && a.language !== languageFilter) return false;
     return true;
   });
+  const filtered = filterArticlesBySearch(filteredByCategory, searchQuery);
 
   const categoryCounts = articles.reduce(
     (acc, a) => {
@@ -93,6 +97,15 @@ export default function ArticleList({
             {filtered.length} / {articles.length} 件の記事
           </p>
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="mb-4">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="タイトル・要旨・ソースで検索..."
+        />
       </div>
 
       {/* Filters */}
