@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllFeeds } from '@/lib/rss-fetcher';
 import { translateArticles } from '@/lib/translator';
-import { saveArticles } from '@/lib/storage';
+import { saveArticles, cleanupOldCache } from '@/lib/storage';
 
 export const maxDuration = 120;
 
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
     const articles = await fetchAllFeeds(since, until);
     const translated = await translateArticles(articles);
     await saveArticles(dateStr, translated);
+
+    await cleanupOldCache(30).catch((e) => console.error('[Cleanup]', e));
 
     return NextResponse.json({
       success: true,

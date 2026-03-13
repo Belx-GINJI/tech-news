@@ -76,6 +76,44 @@ export async function loadArticles(date: string): Promise<DailyArticles | null> 
   }
 }
 
+/** 30日以上前のキャッシュを削除 */
+export async function cleanupOldCache(): Promise<{ deleted: number }> {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  if (useSupabase()) {
+    const { getSupabase } = await import('./supabase');
+    const supabase = getSupabase();
+    if (!supabase) return { deleted: 0 };
+    const { data, error } = await supabase
+      .from('daily_articles')
+      .delete()
+      .lt('date', cutoffStr)
+      .select('date');
+    const deleted = error ? 0 : (data?.length ?? 0);
+    if (deleted > 0) {
+      console.log(`[Storage] Cleanup: deleted ${deleted} daily_articles older than ${cutoffStr} (Supabase)`);
+    }
+    return { deleted };
+  }
+
+  ensureDataDir();
+  const files = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json'));
+  let deleted = 0;
+  for (const f of files) {
+    const dateStr = f.replace('.json', '');
+    if (dateStr < cutoffStr) {
+      fs.unlinkSync(path.join(DATA_DIR, f));
+      deleted++;
+    }
+  }
+  if (deleted > 0) {
+    console.log(`[Storage] Cleanup: deleted ${deleted} files older than ${cutoffStr}`);
+  }
+  return { deleted };
+}
+
 export async function getAvailableDates(): Promise<string[]> {
   if (useSupabase()) {
     const { getSupabase } = await import('./supabase');
