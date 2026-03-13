@@ -28,6 +28,31 @@ const CATEGORY_BORDER_COLORS: Record<string, string> = {
   'jp-tech': 'border-l-sky-400',
 };
 
+type CategoryFilter = 'all' | 'tech' | 'ai' | 'dx' | 'jp-tech';
+
+function FilterButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+        active
+          ? 'bg-primary-500 text-white shadow-sm'
+          : 'bg-surface-100 text-surface-600 hover:bg-surface-200'
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
 export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
   if (favorites.length === 0) {
     return (
@@ -44,7 +69,20 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
   }
 
   const [searchQuery, setSearchQuery] = useState('');
-  const filteredFavorites = filterArticlesBySearch(favorites, searchQuery);
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const filteredBySearch = filterArticlesBySearch(favorites, searchQuery);
+  const filteredFavorites =
+    categoryFilter === 'all'
+      ? filteredBySearch
+      : filteredBySearch.filter((a) => a.category === categoryFilter);
+
+  const categoryCounts = favorites.reduce(
+    (acc, a) => {
+      acc[a.category] = (acc[a.category] || 0) + 1;
+      return acc;
+    },
+    {} as Record<string, number>
+  );
 
   const grouped = new Map<string, Article[]>();
   for (const article of filteredFavorites) {
@@ -70,7 +108,21 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
         <div className="mb-4">
           <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="お気に入り内を検索..." />
         </div>
-        <p className="text-center text-surface-400 py-10">検索に一致する記事がありません</p>
+        <div className="flex flex-wrap gap-2 mb-5">
+          <FilterButton active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')}>
+            すべて ({favorites.length})
+          </FilterButton>
+          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+            <FilterButton
+              key={key}
+              active={categoryFilter === key}
+              onClick={() => setCategoryFilter(key as CategoryFilter)}
+            >
+              {label} ({categoryCounts[key] || 0})
+            </FilterButton>
+          ))}
+        </div>
+        <p className="text-center text-surface-400 py-10">該当する記事がありません</p>
       </div>
     );
   }
@@ -80,7 +132,9 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
       <div className="mb-5">
         <h2 className="text-xl font-bold text-surface-800">お気に入り</h2>
         <p className="text-sm text-surface-500 mt-0.5">
-          {searchQuery ? `${filteredFavorites.length} / ${favorites.length} 件` : `${favorites.length} 件の記事`}
+          {searchQuery || categoryFilter !== 'all'
+            ? `${filteredFavorites.length} / ${favorites.length} 件`
+            : `${favorites.length} 件の記事`}
         </p>
       </div>
 
@@ -90,6 +144,22 @@ export default function Favorites({ favorites, onToggleFav }: FavoritesProps) {
           onChange={setSearchQuery}
           placeholder="お気に入り内を検索..."
         />
+      </div>
+
+      {/* カテゴリフィルター（ニュースページと同じ） */}
+      <div className="flex flex-wrap gap-2 mb-5">
+        <FilterButton active={categoryFilter === 'all'} onClick={() => setCategoryFilter('all')}>
+          すべて ({favorites.length})
+        </FilterButton>
+        {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+          <FilterButton
+            key={key}
+            active={categoryFilter === key}
+            onClick={() => setCategoryFilter(key as CategoryFilter)}
+          >
+            {label} ({categoryCounts[key] || 0})
+          </FilterButton>
+        ))}
       </div>
 
       <div className="space-y-6">
