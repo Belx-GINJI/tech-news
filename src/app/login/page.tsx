@@ -1,22 +1,28 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 type Step = 'id' | 'nickname' | 'confirm';
 
 export default function LoginPage() {
-  const router = useRouter();
   const [step, setStep] = useState<Step>('id');
   const [userId, setUserId] = useState('');
+  /** 新規登録フロー用（チェック直後の4桁ID。state の反映タイミングで誤ったIDを送らない） */
+  const [pendingNewUserId, setPendingNewUserId] = useState('');
   const [nickname, setNickname] = useState('');
   const [existingNickname, setExistingNickname] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 400; /* 約13ヶ月（30日で切れると再ログインが頻繁になるため） */
+
   const setCookie = (uid: string, nick: string) => {
     const val = JSON.stringify({ userId: uid, nickname: nick });
-    document.cookie = `tech-news-user=${encodeURIComponent(val)}; path=/; max-age=2592000; SameSite=Lax`;
+    const secure =
+      typeof window !== 'undefined' && window.location.protocol === 'https:'
+        ? '; Secure'
+        : '';
+    document.cookie = `tech-news-user=${encodeURIComponent(val)}; path=/; max-age=${COOKIE_MAX_AGE_SEC}; SameSite=Lax${secure}`;
   };
 
   const handleSubmitId = async (e: React.FormEvent) => {
@@ -36,10 +42,16 @@ export default function LoginPage() {
         body: JSON.stringify({ id }),
       });
       const data = await res.json();
+      if (!res.ok) {
+        setError(data.message || '確認に失敗しました。しばらくしてからお試しください。');
+        return;
+      }
       if (data.exists) {
+        setPendingNewUserId('');
         setExistingNickname(data.nickname);
         setStep('confirm');
       } else {
+        setPendingNewUserId(id);
         setStep('nickname');
       }
     } catch {
@@ -59,12 +71,20 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
+      const registerId = pendingNewUserId || userId;
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: userId, nickname: nick }),
+        body: JSON.stringify({ id: registerId, nickname: nick }),
       });
       const data = await res.json();
+      /* チェックが誤って新規扱いになった場合など、DB 上は既存 → 既存ニックネームでログイン */
+      if (data.error === 'id_taken' && data.nickname) {
+        const uid = String(data.userId || registerId);
+        setCookie(uid, String(data.nickname));
+        window.location.href = '/';
+        return;
+      }
       if (data.error === 'id_taken') {
         setError('このIDは既に使用されています。別のIDをお試しください。');
         setStep('id');
@@ -74,9 +94,8 @@ export default function LoginPage() {
         setError(data.message || '登録に失敗しました');
         return;
       }
-      setCookie(userId, nick);
-      router.push('/');
-      router.refresh();
+      setCookie(registerId, nick);
+      window.location.href = '/';
     } catch {
       setError('通信エラーです。しばらくしてからお試しください。');
     } finally {
@@ -88,13 +107,13 @@ export default function LoginPage() {
     if (!ok) {
       setStep('id');
       setUserId('');
+      setPendingNewUserId('');
       setExistingNickname('');
       setError('');
       return;
     }
     setCookie(userId, existingNickname);
-    router.push('/');
-    router.refresh();
+    window.location.href = '/';
   };
 
   return (
@@ -142,7 +161,7 @@ export default function LoginPage() {
         {step === 'nickname' && (
           <form onSubmit={handleSubmitNickname} className="space-y-4">
             <p className="text-sm text-surface-600">
-              ID <strong>{userId}</strong> は初めてのご利用ですね。
+              ID <strong>{pendingNewUserId || userId}</strong> は初めてのご利用ですね。
               <br />
               ニックネームを設定してください（10文字以内）
             </p>

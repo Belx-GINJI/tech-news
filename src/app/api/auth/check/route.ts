@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
       .from('users')
       .select('id, nickname')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error('[Auth] Check error:', error);
       return NextResponse.json({ error: 'db_error' }, { status: 500 });
     }

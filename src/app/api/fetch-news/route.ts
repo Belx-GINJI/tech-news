@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     const translated = await translateArticles(articles);
     await saveArticles(dateStr, translated);
 
-    await cleanupOldCache(30).catch((e) => console.error('[Cleanup]', e));
+    await cleanupOldCache().catch((e) => console.error('[Cleanup]', e));
 
     return NextResponse.json({
       success: true,

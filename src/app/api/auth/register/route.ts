@@ -33,8 +33,18 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       if (error.code === '23505') {
+        const { data: existing } = await supabase
+          .from('users')
+          .select('id, nickname')
+          .eq('id', userId)
+          .maybeSingle();
         return NextResponse.json(
-          { error: 'id_taken', message: 'このIDは既に使用されています' },
+          {
+            error: 'id_taken',
+            message: 'このIDは既に登録されています',
+            nickname: existing?.nickname ?? null,
+            userId,
+          },
           { status: 409 }
         );
       }
@@ -42,7 +52,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'db_error' }, { status: 500 });
     }
 
-    await supabase.from('user_favorites').insert({ user_id: userId });
+    const { error: favErr } = await supabase.from('user_favorites').insert({ user_id: userId });
+    if (favErr?.code === '23505') {
+      /* 行が既にある場合は無視（再登録試行など） */
+    } else if (favErr) {
+      console.error('[Auth] user_favorites insert:', favErr);
+    }
 
     return NextResponse.json({
       success: true,
