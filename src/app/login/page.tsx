@@ -43,7 +43,13 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.message || '確認に失敗しました。しばらくしてからお試しください。');
+        if (data.error === 'config_error') {
+          setError('サーバー設定エラーです（環境変数未設定）。管理者にお問い合わせください。');
+        } else if (data.error === 'db_error') {
+          setError('データベース接続エラーです。Supabaseのプロジェクトが停止している可能性があります。');
+        } else {
+          setError(`確認に失敗しました（${data.error ?? res.status}）。しばらくしてからお試しください。`);
+        }
         return;
       }
       if (data.exists) {
